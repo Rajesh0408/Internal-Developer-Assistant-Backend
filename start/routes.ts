@@ -2,15 +2,51 @@
 |--------------------------------------------------------------------------
 | Routes file
 |--------------------------------------------------------------------------
-|
 | The routes file is used for defining the HTTP routes.
 |
 */
 
 import router from '@adonisjs/core/services/router'
+import { middleware } from './kernel.js'
 
 router.get('/', async () => {
   return {
     hello: 'world',
   }
 })
+
+/*
+|--------------------------------------------------------------------------
+| Auth Routes (PUBLIC)
+|--------------------------------------------------------------------------
+*/
+router.post('/auth/signup', '#controllers/auth_controller.signup')
+router.post('/auth/login', '#controllers/auth_controller.login')
+router
+  .patch('/users/:id/role', '#controllers/users_controller.updateRole')
+  .middleware([middleware.jwt(), middleware.role({ role: 'admin' })])
+
+/*
+|--------------------------------------------------------------------------
+| Protected API Routes (JWT)
+|--------------------------------------------------------------------------
+*/
+router
+  .group(() => {
+    // Questions
+    router.post('/questions', '#controllers/questions_controller.store')
+    router.get('/questions', '#controllers/questions_controller.index')
+    router.get('/questions/search', '#controllers/questions_controller.search')
+    router.get('/questions/:id', '#controllers/questions_controller.show')
+
+    // Answers
+    router.post('/answers', '#controllers/answers_controller.store')
+
+    // Votes
+    router.post('/votes', '#controllers/votes_controller.store')
+
+    router.get('/notifications', '#controllers/notifications_controller.index')
+    router.patch('/notifications/:id/read', '#controllers/notifications_controller.markAsRead')
+  })
+  .prefix('/api')
+  .middleware(middleware.jwt())
