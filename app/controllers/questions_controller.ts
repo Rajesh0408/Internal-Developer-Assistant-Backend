@@ -21,14 +21,16 @@ export default class QuestionsController {
   }
 
   async index() {
-    return await Question.query().preload('user')
+    return await Question.query().preload('user').preload('answers')
   }
 
   async show({ params, response }: HttpContext) {
     const question = await Question.query()
       .where('id', params.id)
       .preload('user')
-      .preload('answers')
+      .preload('answers', (query) => {
+        query.preload('user')
+      })
       .first()
 
     if (!question) {
@@ -41,6 +43,15 @@ export default class QuestionsController {
   async search({ request }: HttpContext) {
     const keyword = request.input('keyword')
 
-    return await Question.query().whereILike('title', `%${keyword}%`)
+    if (!keyword) {
+      return await Question.query().preload('user').preload('answers')
+    }
+
+    return await Question.query()
+      .whereILike('title', `%${keyword}%`)
+      .orWhereILike('description', `%${keyword}%`)
+      .orWhereRaw('tags::text ILIKE ?', [`%${keyword}%`])
+      .preload('user')
+      .preload('answers')
   }
 }

@@ -15,7 +15,22 @@ export default class Question extends BaseModel {
   declare description: string
 
   @column({
-    serialize: (value: string[] | null) => value,
+    prepare: (value: any) => (Array.isArray(value) ? JSON.stringify(value) : value),
+    consume: (value: any) => {
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value)
+          if (Array.isArray(parsed)) return parsed
+        } catch {}
+        
+        let cv = value.trim()
+        if (cv.startsWith('{') && cv.endsWith('}')) {
+          cv = cv.substring(1, cv.length - 1)
+        }
+        return cv.split(',').map(s => s.replace(/["']/g, '').trim()).filter(Boolean)
+      }
+      return Array.isArray(value) ? value : []
+    },
   })
   declare tags: string[] | null
 
