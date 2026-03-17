@@ -22,9 +22,7 @@ router.get('/', async () => {
 */
 router.post('/auth/signup', '#controllers/auth_controller.signup')
 router.post('/auth/login', '#controllers/auth_controller.login')
-router
-  .patch('/users/:id/role', '#controllers/users_controller.updateRole')
-  .middleware([middleware.jwt(), middleware.role({ role: 'admin' })])
+
 
 /*
 |--------------------------------------------------------------------------
@@ -51,6 +49,15 @@ router
     router.delete('/documents/:id', '#controllers/documents_controller.destroy').middleware(middleware.role({ role: 'admin' }))
 // Users
     router.get('/users/me/stats', '#controllers/users_controller.stats')
+    router.get('/users/me', '#controllers/users_controller.me')
+    router.put('/users/me', '#controllers/users_controller.updateProfile')
+    router.post('/users/:id/follow', '#controllers/users_controller.follow')
+    router.delete('/users/:id/unfollow', '#controllers/users_controller.unfollow')
+    router.get('/users/me/followers', '#controllers/users_controller.followers')
+    router.get('/users/me/following', '#controllers/users_controller.following')
+    router.get('/users', '#controllers/users_controller.index').middleware(middleware.role({ role: 'admin' }))
+    router.post('/users', '#controllers/users_controller.adminCreate').middleware(middleware.role({ role: 'admin' }))
+    router.patch('/users/:id/role', '#controllers/users_controller.updateRole').middleware(middleware.role({ role: 'admin' }))
 
     router.get('/notifications', '#controllers/notifications_controller.index')
     router.patch('/notifications/:id/read', '#controllers/notifications_controller.markAsRead')
