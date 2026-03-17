@@ -49,6 +49,8 @@ router
     router.get('/documents', '#controllers/documents_controller.index')
     router.post('/documents', '#controllers/documents_controller.upload').middleware(middleware.role({ role: 'admin' }))
     router.delete('/documents/:id', '#controllers/documents_controller.destroy').middleware(middleware.role({ role: 'admin' }))
+// Users
+    router.get('/users/me/stats', '#controllers/users_controller.stats')
 
     router.get('/notifications', '#controllers/notifications_controller.index')
     router.patch('/notifications/:id/read', '#controllers/notifications_controller.markAsRead')
