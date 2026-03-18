@@ -21,6 +21,9 @@ export default class Answer extends BaseModel {
   @column()
   declare score: number
 
+  @column()
+  declare filePath: string | null
+
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
 

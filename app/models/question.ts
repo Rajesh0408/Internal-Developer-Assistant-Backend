@@ -37,6 +37,9 @@ export default class Question extends BaseModel {
   @column()
   declare userId: number
 
+  @column()
+  declare filePath: string | null
+
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
 

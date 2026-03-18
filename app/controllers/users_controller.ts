@@ -73,10 +73,15 @@ export default class UsersController {
     const questions = await Question.query().where('userId', user.id).count('* as total')
     const answers = await Answer.query().where('userId', user.id).count('* as total')
 
+    await user.load('questions', (q) => q.orderBy('createdAt', 'desc'))
+    await user.load('answers', (q) => q.preload('question').orderBy('createdAt', 'desc'))
+
     return {
       ...user.serialize(),
       questionsCount: Number(questions[0].$extras.total),
       answersCount: Number(answers[0].$extras.total),
+      questions: user.questions,
+      answers: user.answers,
     }
   }
 
@@ -162,5 +167,22 @@ export default class UsersController {
     const user = request.user!
     await user.load('following')
     return user.following
+  }
+
+  async globalStats() {
+    const questions = await Question.query().count('* as total')
+    const answers = await Answer.query().count('* as total')
+    return {
+      totalQuestions: Number(questions[0].$extras.total),
+      totalAnswers: Number(answers[0].$extras.total),
+    }
+  }
+
+  async destroy({ params, response }: HttpContext) {
+    const user = await User.find(params.id)
+    if (!user) return response.notFound({ message: 'User not found' })
+    if (user.role === 'admin') return response.badRequest({ message: 'Cannot delete an admin' })
+    await user.delete()
+    return { success: true, message: 'User deleted successfully' }
   }
 }

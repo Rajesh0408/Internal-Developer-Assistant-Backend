@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import app from '@adonisjs/core/services/app'
 import Answer from '#models/answer'
 import Question from '#models/question'
 import Notification from '#models/notification'
@@ -19,12 +20,27 @@ export default class AnswersController {
       return response.notFound({ message: 'Question not found' })
     }
 
+    const file = request.file('proof', {
+      extnames: ['jpg', 'png', 'pdf', 'zip', 'doc', 'docx', 'txt'],
+      size: '10mb',
+    })
+
+    let savedFileName: string | null = null
+
+    if (file && file.isValid) {
+      await file.move(app.makePath('uploads'), {
+        name: `${new Date().getTime()}_${file.clientName}`,
+      })
+      savedFileName = file.fileName!
+    }
+
     // ✅ Create answer
     const answer = await Answer.create({
       answerText: data.answerText,
       questionId: data.questionId,
       userId: currentUser.id,
       score: 0,
+      filePath: savedFileName,
     })
 
     // ✅ Avoid self-notification
@@ -69,5 +85,18 @@ export default class AnswersController {
     }
 
     return response.created(answer)
+  }
+
+  async destroy({ params, request, response }: HttpContext) {
+    const answer = await Answer.find(params.id)
+    if (!answer) return response.notFound({ message: 'Answer not found' })
+
+    const user = request.user!
+    if (user.role !== 'admin' && answer.userId !== user.id) {
+      return response.unauthorized({ message: 'Not authorized to delete this answer' })
+    }
+
+    await answer.delete()
+    return { success: true, message: 'Answer deleted successfully' }
   }
 }

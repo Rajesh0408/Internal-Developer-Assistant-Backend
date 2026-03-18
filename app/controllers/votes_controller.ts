@@ -17,32 +17,40 @@ export default class VotesController {
       return response.notFound({ message: 'Answer not found' })
     }
 
-    // ✅ Prevent duplicate vote
+    // ✅ Prevent duplicate vote logic replaced with toggle & unvote logic
     const existingVote = await Vote.query()
       .where('answerId', data.answerId)
       .where('userId', currentUser.id)
       .first()
 
-    if (existingVote) {
-      return response.badRequest({
-        message: 'You have already voted on this answer',
-      })
-    }
-
     // ✅ Get vote weight based on role
     const weight = getWeight(currentUser.role)
 
-    const scoreChange = data.voteType === 'up' ? weight : -weight
-
-    // ✅ Create vote
-    await Vote.create({
-      answerId: data.answerId,
-      voteType: data.voteType,
-      userId: currentUser.id,
-    })
+    if (existingVote) {
+      if (existingVote.voteType === data.voteType) {
+        // UNVOTE: Remove previously added weight
+        const scoreChange = data.voteType === 'up' ? -weight : weight
+        await existingVote.delete()
+        answer.score += scoreChange
+      } else {
+        // TOGGLE VOTE: Reverse old vote and apply new (2x weight)
+        const scoreChange = data.voteType === 'up' ? weight * 2 : -weight * 2
+        existingVote.voteType = data.voteType
+        await existingVote.save()
+        answer.score += scoreChange
+      }
+    } else {
+      // NEW VOTE: Apply regular weight
+      const scoreChange = data.voteType === 'up' ? weight : -weight
+      await Vote.create({
+        answerId: data.answerId,
+        voteType: data.voteType,
+        userId: currentUser.id,
+      })
+      answer.score += scoreChange
+    }
 
     // ✅ Update answer score
-    answer.score += scoreChange
     await answer.save()
 
     return {

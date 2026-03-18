@@ -36,9 +36,11 @@ router
     router.get('/questions', '#controllers/questions_controller.index')
     router.get('/questions/search', '#controllers/questions_controller.search')
     router.get('/questions/:id', '#controllers/questions_controller.show')
+    router.delete('/questions/:id', '#controllers/questions_controller.destroy')
 
     // Answers
     router.post('/answers', '#controllers/answers_controller.store')
+    router.delete('/answers/:id', '#controllers/answers_controller.destroy')
 
     // Votes
     router.post('/votes', '#controllers/votes_controller.store')
@@ -56,9 +58,12 @@ router
     router.delete('/users/:id/unfollow', '#controllers/users_controller.unfollow')
     router.get('/users/me/followers', '#controllers/users_controller.followers')
     router.get('/users/me/following', '#controllers/users_controller.following')
+    
+    router.get('/admin/stats', '#controllers/users_controller.globalStats').middleware(middleware.role({ role: 'admin' }))
     router.get('/users', '#controllers/users_controller.index').middleware(middleware.role({ role: 'admin' }))
     router.post('/users', '#controllers/users_controller.adminCreate').middleware(middleware.role({ role: 'admin' }))
     router.patch('/users/:id/role', '#controllers/users_controller.updateRole').middleware(middleware.role({ role: 'admin' }))
+    router.delete('/users/:id', '#controllers/users_controller.destroy').middleware(middleware.role({ role: 'admin' }))
 
     router.get('/notifications', '#controllers/notifications_controller.index')
     router.patch('/notifications/:id/read', '#controllers/notifications_controller.markAsRead')

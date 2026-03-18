@@ -1,5 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import app from '@adonisjs/core/services/app'
 import Question from '#models/question'
+import User from '#models/user'
 import { createQuestionValidator } from '#validators/create_question'
 
 export default class QuestionsController {
@@ -10,11 +12,26 @@ export default class QuestionsController {
       return response.unauthorized({ message: 'Unauthorized' })
     }
 
+    const file = request.file('proof', {
+      extnames: ['jpg', 'png', 'pdf', 'zip', 'doc', 'docx', 'txt'],
+      size: '10mb',
+    })
+
+    let savedFileName: string | null = null
+
+    if (file && file.isValid) {
+      await file.move(app.makePath('uploads'), {
+        name: `${new Date().getTime()}_${file.clientName}`,
+      })
+      savedFileName = file.fileName!
+    }
+
     const question = await Question.create({
       title: data.title,
       description: data.description,
       tags: data.tags || null,
       userId: request.user.id,
+      filePath: savedFileName,
     })
 
     return question
@@ -35,7 +52,12 @@ export default class QuestionsController {
     } else if (filter === 'following') {
       await user.load('following')
       const followingIds = user.following.map((f) => f.id)
-      query.whereIn('userId', followingIds).orderBy('createdAt', 'desc')
+      query.where((q) => {
+        q.whereIn('userId', followingIds)
+         .orWhereHas('answers', (ansQuery) => {
+           ansQuery.whereIn('userId', followingIds)
+         })
+      }).orderBy('createdAt', 'desc')
     } else if (filter === 'my_domains') {
       if (user.domains && user.domains.length > 0) {
         query.where((q) => {
@@ -93,6 +115,7 @@ export default class QuestionsController {
     const limit = request.input('limit', 10)
 
     const query = Question.query().preload('user').preload('answers')
+    let users: any[] = []
 
     if (keyword) {
       query.where((q) => {
@@ -100,10 +123,36 @@ export default class QuestionsController {
          .orWhereILike('description', `%${keyword}%`)
          .orWhereRaw('tags::text ILIKE ?', [`%${keyword}%`])
       })
+      
+      users = await User.query()
+        .where((q) => {
+          q.whereILike('name', `%${keyword}%`)
+           .orWhereILike('email', `%${keyword}%`)
+           .orWhereRaw('domains::text ILIKE ?', [`%${keyword}%`])
+        })
+        .limit(5)
     }
     
     query.orderBy('createdAt', 'desc')
 
-    return await query.paginate(page, limit)
+    const questionsPaginator = await query.paginate(page, limit)
+    
+    return {
+      questions: questionsPaginator,
+      users: users
+    }
+  }
+
+  async destroy({ params, request, response }: HttpContext) {
+    const question = await Question.find(params.id)
+    if (!question) return response.notFound({ message: 'Question not found' })
+
+    const user = request.user!
+    if (user.role !== 'admin' && question.userId !== user.id) {
+      return response.unauthorized({ message: 'Not authorized to delete this question' })
+    }
+
+    await question.delete()
+    return { success: true, message: 'Question deleted successfully' }
   }
 }
