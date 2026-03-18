@@ -7,12 +7,33 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import app from '@adonisjs/core/services/app'
+import { normalize } from 'node:path'
+import { createReadStream } from 'node:fs'
 import { middleware } from './kernel.js'
 
 router.get('/', async () => {
   return {
     hello: 'world',
   }
+})
+
+router.get('/uploads/*', async ({ request, response }) => {
+  const filePath = request.param('*').join('/')
+  const normalizedPath = normalize(filePath)
+  const absolutePath = app.makePath('uploads', normalizedPath)
+
+  if (request.input('view') === 'true') {
+    let contentType = 'application/octet-stream'
+    if (absolutePath.endsWith('.pdf')) contentType = 'application/pdf'
+    else if (absolutePath.match(/\.(jpg|jpeg|png|gif)$/i)) contentType = `image/${absolutePath.split('.').pop()}`
+    
+    response.header('Content-Type', contentType)
+    response.header('Content-Disposition', 'inline')
+    return response.stream(createReadStream(absolutePath))
+  }
+
+  return response.download(absolutePath)
 })
 
 /*

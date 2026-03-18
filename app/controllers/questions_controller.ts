@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import app from '@adonisjs/core/services/app'
 import Question from '#models/question'
 import User from '#models/user'
+import Document from '#models/document'
 import { createQuestionValidator } from '#validators/create_question'
 
 export default class QuestionsController {
@@ -116,6 +117,7 @@ export default class QuestionsController {
 
     const query = Question.query().preload('user').preload('answers')
     let users: any[] = []
+    let documents: any[] = []
 
     if (keyword) {
       query.where((q) => {
@@ -131,6 +133,11 @@ export default class QuestionsController {
            .orWhereRaw('domains::text ILIKE ?', [`%${keyword}%`])
         })
         .limit(5)
+        
+      documents = await Document.query()
+        .whereILike('title', `%${keyword}%`)
+        .orWhereILike('filePath', `%${keyword}%`)
+        .limit(5)
     }
     
     query.orderBy('createdAt', 'desc')
@@ -139,7 +146,8 @@ export default class QuestionsController {
     
     return {
       questions: questionsPaginator,
-      users: users
+      users: users,
+      documents: documents
     }
   }
 
