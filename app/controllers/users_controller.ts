@@ -80,6 +80,42 @@ export default class UsersController {
     }
   }
 
+  async showProfile({ params, request, response }: HttpContext) {
+    const user = await User.find(params.id)
+    if (!user) return response.notFound({ message: 'User not found' })
+
+    const questionsStats = await Question.query().where('userId', user.id).count('* as total')
+    const answersStats = await Answer.query().where('userId', user.id).count('* as total')
+
+    const currentUser = request.user!
+    let isFollowing = false
+    if (currentUser.id !== user.id) {
+      const followQuery = await currentUser.related('following').query().where('following_id', user.id).first()
+      isFollowing = !!followQuery
+    }
+
+    await user.load('questions', (q) => q.orderBy('createdAt', 'desc').limit(10))
+    await user.load('answers', (q) => q.preload('question').orderBy('createdAt', 'desc').limit(10))
+    await user.load('followers')
+    await user.load('following')
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      domains: user.domains,
+      createdAt: user.createdAt,
+      questionsCount: Number(questionsStats[0].$extras.total),
+      answersCount: Number(answersStats[0].$extras.total),
+      followersCount: user.followers.length,
+      followingCount: user.following.length,
+      isFollowing,
+      questions: user.questions,
+      answers: user.answers,
+    }
+  }
+
   async updateProfile({ request }: HttpContext) {
     const data = await request.validateUsing(updateProfileValidator)
     const user = request.user!

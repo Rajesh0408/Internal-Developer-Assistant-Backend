@@ -12,6 +12,7 @@ export default class AuthController {
     const user = await User.create({
       name: data.name,
       email: data.email,
+      phoneNumber: data.phoneNumber,
       password: await hash.make(data.password),
       role: 'developer',
     })

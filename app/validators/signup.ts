@@ -6,6 +6,8 @@ export const signupValidator = vine.compile(
 
     email: vine.string().trim().email().normalizeEmail(),
 
+    phoneNumber: vine.string().optional(),
+
     password: vine.string().minLength(8).maxLength(32),
   })
 )

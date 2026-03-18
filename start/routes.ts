@@ -51,6 +51,7 @@ router
     router.get('/users/me/stats', '#controllers/users_controller.stats')
     router.get('/users/me', '#controllers/users_controller.me')
     router.put('/users/me', '#controllers/users_controller.updateProfile')
+    router.get('/users/:id/profile', '#controllers/users_controller.showProfile')
     router.post('/users/:id/follow', '#controllers/users_controller.follow')
     router.delete('/users/:id/unfollow', '#controllers/users_controller.unfollow')
     router.get('/users/me/followers', '#controllers/users_controller.followers')
