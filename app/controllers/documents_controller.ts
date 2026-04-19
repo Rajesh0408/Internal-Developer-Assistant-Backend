@@ -34,6 +34,26 @@ export default class DocumentsController {
       uploadedBy: currentUser.id,
     })
 
+    // Ping Python FAISS microservice to ingest document
+    try {
+      const absoluteFilePath = app.makePath('uploads', file.fileName!)
+      // The frontend URL would typically resolve uploads via backend URL + /uploads/...
+      const docUrl = `/uploads/${file.fileName!}`
+      
+      await fetch('http://127.0.0.1:8000/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_path: absoluteFilePath,
+          filename: file.clientName,
+          doc_url: docUrl
+        })
+      })
+    } catch (err) {
+      console.error('Failed to notify FAISS service of new document:', err)
+      // Optional: Don't fail the upload just because FAISS is down
+    }
+
     return response.created(document)
   }
 

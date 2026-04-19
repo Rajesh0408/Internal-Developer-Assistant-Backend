@@ -63,6 +63,9 @@ router
     router.post('/answers', '#controllers/answers_controller.store')
     router.delete('/answers/:id', '#controllers/answers_controller.destroy')
 
+    // Chatbot
+    router.post('/chat/query', '#controllers/chat_controller.query')
+
     // Votes
     router.post('/votes', '#controllers/votes_controller.store')
 
